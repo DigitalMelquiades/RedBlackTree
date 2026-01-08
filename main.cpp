@@ -73,64 +73,112 @@ class RedBlackTree {
 
         root->isBlack = true;
     }
-    void fixDelete(Node* node, Node* parent) {
-        while (node != root && isBlack(node)) {
-            if (node == parent->left) {
-                Node* sibling = parent->right;
-                if (!isBlack(sibling)) {
-                    sibling->isBlack = true;
+    void fixDelete(Node* x, Node* parent) {
+        while (x != root && isBlack(x)) {
+            if (x == parent->left) {
+                Node* w = parent->right;
+
+                if (!isBlack(w)) {
+                    w->isBlack = true;
                     parent->isBlack = false;
                     leftRotate(parent);
-                    sibling = parent->right;
+                    w = parent->right;
                 }
-                if (isBlack(sibling->left) && isBlack(sibling->right)) {
-                    sibling->isBlack = false;
-                    node = parent;
-                    parent = node->parent;
-                }
-                else {
-                    if (isBlack(sibling->right)) {
-                        if (sibling->left) sibling->left->isBlack = true;
-                        sibling->isBlack = false;
-                        rightRotate(sibling);
-                        sibling = parent->right;
+
+                if (isBlack(w->left) && isBlack(w->right)) {
+                    w->isBlack = false;
+                    x = parent;
+                    parent = x->parent;
+                } else {
+                    if (isBlack(w->right)) {
+                        w->left->isBlack = true;
+                        w->isBlack = false;
+                        rightRotate(w);
+                        w = parent->right;
                     }
-                    sibling->isBlack = parent->isBlack;
+
+                    w->isBlack = parent->isBlack;
                     parent->isBlack = true;
-                    if (sibling->right) sibling->right->isBlack = true;
+                    w->right->isBlack = true;
                     leftRotate(parent);
-                    node = root;
+                    x = root;
                 }
             }
             else {
-                Node* s = parent->left;
-                if (!isBlack(s)) {
-                    s->isBlack = true;
+                Node* w = parent->left;
+
+                if (!isBlack(w)) {
+                    w->isBlack = true;
                     parent->isBlack = false;
                     rightRotate(parent);
-                    s = parent->left;
+                    w = parent->left;
                 }
-                if (isBlack(s->left) && isBlack(s->right)) {
-                    s->isBlack = false;
-                    node = parent;
-                    parent = node->parent;
-                }
-                else {
-                    if (isBlack(s->left)) {
-                        if (s->right) s->right->isBlack = true;
-                        s->isBlack = false;
-                        leftRotate(s);
-                        s = parent->left;
+
+                if (isBlack(w->left) && isBlack(w->right)) {
+                    w->isBlack = false;
+                    x = parent;
+                    parent = x->parent;
+                } else {
+                    if (isBlack(w->left)) {
+                        w->right->isBlack = true;
+                        w->isBlack = false;
+                        leftRotate(w);
+                        w = parent->left;
                     }
-                    s->isBlack = parent->isBlack;
+
+                    w->isBlack = parent->isBlack;
                     parent->isBlack = true;
-                    if (s->left) s->left->isBlack = true;
+                    w->left->isBlack = true;
                     rightRotate(parent);
-                    node = root;
+                    x = root;
                 }
             }
         }
-        if (node) node->isBlack = true;
+        if (x) x->isBlack = true;
+    }
+    void deleteNode(Node* node) {
+        Node* y = node;
+        Node* x = nullptr;
+        Node* xParent = nullptr;
+        bool yOriginalBlack = y->isBlack;
+        if (!node->left) {
+            x = node->right;
+            xParent = node->parent;
+            transplant(node, node->right);
+        }
+        else if (!node->right) {
+            x = node->left;
+            xParent = node->parent;
+            transplant(node, node->left);
+        }
+        else {
+            y = minimum(node->right);
+            yOriginalBlack = y->isBlack;
+            x = y->right;
+            if (y->parent == node) {
+                xParent = y;
+            } else {
+                xParent = y->parent;
+                transplant(y, y->right);
+                y->right = node->right;
+                y->right->parent = y;
+            }
+            transplant(node, y);
+            y->left = node->left;
+            y->left->parent = y;
+            y->isBlack = node->isBlack;
+        }
+        delete node;
+        if (yOriginalBlack) fixDelete(x, xParent);
+    }
+    Node* findNode(const int& key) {
+        Node* current = root;
+        while (current) {
+            if (key == current->value) return current;
+            if (key < current->value) current = current->left;
+            else current = current->right;
+        }
+        return nullptr;
     }
     Node* copy(Node* node, Node* parent) {
         if (!node) return nullptr;
@@ -151,58 +199,37 @@ class RedBlackTree {
         while (node && node->left) node = node->left;
         return node;
     } // Defined this so when deleted a node we can find its successor
-    Node* deleteRec(Node* node, const int& key) {
-        if (!node) return nullptr;
-        if (key < node->value) node->left = deleteRec(node->left, key);
-        else if (key > node->value) node->right = deleteRec(node->right, key);
-        else {
-            if (!node->left) {
-                Node* right = node->right;
-                delete node;
-                return right;
-            }
-            if (!node->right) {
-                Node* left = node->left;
-                delete node;
-                return left;
-            }
-            Node* successor = minimum(node->right);
-            node->value = successor->value;
-            node->right = deleteRec(node->right, successor->value);
-        }
-        return node;
-    }
 public:
     RedBlackTree() : root(nullptr) {}
     RedBlackTree(const RedBlackTree& other) { root = copy(other.root, nullptr); }
     ~RedBlackTree(){ clear(root); }
-    void leftRotate(Node* x) {
-        Node* y = x->right;
-        x->right = y->left;
-
-        if (y->left) y->left->parent = x;
-        y->parent = x->parent;
-
-        if (!x->parent)root = y;
-        else if (x == x->parent->left) x->parent->left = y;
-        else x->parent->right = y;
-
-        y->left = x;
-        x->parent = y;
+    void leftRotate(Node* node) {
+        Node* rightChild = node->right;
+        node->right = rightChild->left;
+        if (rightChild->left) rightChild->left->parent = node;
+        rightChild->parent = node->parent;
+        if (!node->parent) root = rightChild;
+        else if (node == node->parent->left) node->parent->left = rightChild;
+        else node->parent->right = rightChild;
+        rightChild->left = node;
+        node->parent = rightChild;
     }
-    void rightRotate(Node* x) {
-        Node* y = x->left;
-        x->left = y->right;
-
-        if (y->right) y->right->parent = x;
-        y->parent = x->parent;
-
-        if (!x->parent) root = y;
-        else if (x == x->parent->right) x->parent->right = y;
-        else x->parent->left = y;
-
-        y->right = x;
-        x->parent = y;
+    void rightRotate(Node* node) {
+        Node* leftChild = node->left;
+        node->left = leftChild->right;
+        if (leftChild->right) leftChild->right->parent = node;
+        leftChild->parent = node->parent;
+        if (!node->parent) root = leftChild;
+        else if (node == node->parent->right) node->parent->right = leftChild;
+        else node->parent->left = leftChild;
+        leftChild->right = node;
+        node->parent = leftChild;
+    }
+    void transplant(Node* node, Node* v) {
+        if (!node->parent) root = v;
+        else if (node == node->parent->left) node->parent->left = v;
+        else node->parent->right = v;
+        if (v) v->parent = node->parent;
     }
     void insert(const int& value) {
         Node* newNode = new Node(value);
@@ -220,52 +247,26 @@ public:
         else parent->right = newNode;
         fixInsert(newNode);
     }
+    void deleteNode(const int& value) {
+        Node* node = findNode(value);
+        if (node) deleteNode(node);
+    }
     bool search(const int& key) const { return search(root,key); }
     bool searchIt(const int& key) {
-        Node* curr = root;
-        while (curr) {
-            if (key == curr->value) return true;
-            if (key < curr->value) curr = curr->left;
-            else curr = curr->right;
+        Node* current = root;
+        while (current) {
+            if (key == current->value) return true;
+            if (key < current->value) current = current->left;
+            else current = current->right;
         }
         return false;
     }
-    void deleteIt(const int& key) {
-        Node* parent = nullptr;
-        Node* current = root;
-        while (current && current->value != key) {
-            parent = current;
-            current = (key < current->value) ? current->left : current->right;
-        }
-        if (!current) return;
-        bool deletedBlack = current->isBlack;
-        if (current->left && current->right) {
-            Node* succsessorParent = current;
-            Node* succsessor = current->right;
-            while (succsessor->left) {
-                succsessorParent = succsessor;
-                succsessor = succsessor->left;
-            }
-            current->value = succsessor->value;
-            current = succsessor;
-            parent = succsessorParent;
-            deletedBlack = current->isBlack;
-        }
-        Node* child = current->left ? current->left : current->right;
-        if (child) child->parent = parent;
-        if (!parent) root = child;
-        else if (parent->left == current) parent->left = child;
-        else parent->right = child;
-        delete current;
-        if (deletedBlack) fixDelete(child, parent);
-    }
-    void deleteRec(const int& key) { root = deleteRec(root, key); } // Deletion may cause tree to break, but because I don't want to copy-paste code from GPT and we never really wrote proper code for it on the lab, I decided not to touch it, at least it satisfies the task requirements anyway
     void colorflip(Node* grandparent) {
         grandparent->isBlack = false;
         if (grandparent->left) grandparent->left->isBlack = true;
         if (grandparent->right) grandparent->right->isBlack = true;
     }
-    void inorder() const { inorder(root); } // I will implement my own display order approach, because why not
+    void inorder() const { inorder(root); }
     void preorder() const { preorder(root); }
     void postorder() const { postorder(root); }
     RedBlackTree& operator=(const RedBlackTree& other);
@@ -292,19 +293,21 @@ int main() {
     std::cout << "Inorder: ";
     tree.inorder();
 
-    tree.deleteIt(5);
-
     std::cout << "\nPreorder: ";
     tree.preorder();
-
-    //tree.deleteRec(25);
-    tree.deleteIt(25);
 
     std::cout << "\nPostorder: ";
     tree.postorder();
 
+    tree.deleteNode(5);
+    tree.deleteNode(25);
+    std::cout<<"\nAfter deletion: ";
+    tree.inorder();
+
     std::cout << "\nSearch 15: " << (tree.search(15) ? "Found":"Not Found");
+    std::cout << "\nSearch 15: " << (tree.searchIt(15) ? "Found":"Not Found");
     std::cout << "\nSearch 99: " << (tree.search(99) ? "Found":"Not Found");
+    std::cout << "\nSearch 99: " << (tree.searchIt(99) ? "Found":"Not Found");
 
     RedBlackTree copy = tree;
     std::cout << "\nCopied tree inorder: ";
