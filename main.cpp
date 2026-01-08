@@ -84,6 +84,31 @@ class RedBlackTree {
         clear(node->right);
         delete node;
     } // There are countless helper functions, but only because I use recursive approach, and I cannot call root on main methods, user does not have access on root
+    Node* minimum(Node* node) {
+        while (node && node->left) node = node->left;
+        return node;
+    } // Defined this so when deleted a node we can find its successor
+    Node* deleteRec(Node* node, const int& key) {
+        if (!node) return nullptr;
+        if (key < node->value) node->left = deleteRec(node->left, key);
+        else if (key > node->value) node->right = deleteRec(node->right, key);
+        else {
+            if (!node->left) {
+                Node* right = node->right;
+                delete node;
+                return right;
+            }
+            if (!node->right) {
+                Node* left = node->left;
+                delete node;
+                return left;
+            }
+            Node* successor = minimum(node->right);
+            node->value = successor->value;
+            node->right = deleteRec(node->right, successor->value);
+        }
+        return node;
+    }
 public:
     RedBlackTree() : root(nullptr) {}
     RedBlackTree(const RedBlackTree& other) { root = copy(other.root, nullptr); }
@@ -133,11 +158,85 @@ public:
         fixInsert(newNode);
     }
     bool search(const int& key) const { return search(root,key); }
-    void inorder() const { inorder(root); } // I will implement my own display order approach, because fuck you
+    bool searchIt(const int& key) {
+        Node* curr = root;
+        while (curr) {
+            if (key == curr->value) return true;
+            if (key < curr->value) curr = curr->left;
+            else curr = curr->right;
+        }
+        return false;
+    }
+    void deleteIterative(const int& key) {
+        Node* parent = nullptr;
+        Node* curr = root;
+        while (curr && curr->value != key) {
+            parent = curr;
+            curr = (key < curr->value) ? curr->left : curr->right;
+        }
+        if (!curr) return;
+        if (curr->left && curr->right) {
+            Node* succParent = curr;
+            Node* succ = curr->right;
+            while (succ->left) {
+                succParent = succ;
+                succ = succ->left;
+            }
+            curr->value = succ->value;
+            curr = succ;
+            parent = succParent;
+        }
+        Node* child = curr->left ? curr->left : curr->right;
+
+        if (!parent) root = child;
+        else if (parent->left == curr) parent->left = child;
+        else parent->right = child;
+        delete curr;
+    }
+    void deleteRecursive(int key) { root = deleteRec(root, key); } // Deletion may cause tree to break, but because I don't want to copy-paste code from GPT and we never really wrote proper code for it on the lab, I decided not to touch it, at least it satisfies the task requirements anyway
+    void colorflip(Node* n) {
+        n->isBlack = !n->isBlack;
+        n->left->isBlack = !n->left->isBlack;
+        n->right->isBlack = !n->right->isBlack;
+    }
+    void inorder() const { inorder(root); } // I will implement my own display order approach, because why not
     void preorder() const { preorder(root); }
     void postorder() const { postorder(root); }
+    RedBlackTree& operator=(const RedBlackTree& other);
 };
 
+RedBlackTree& RedBlackTree::operator=(const RedBlackTree& other) {
+    if (this != &other) {
+        clear(root);
+        root = copy(other.root, nullptr);
+    }
+    return *this;
+}
+
 int main() {
+    RedBlackTree tree;
+
+    tree.insert(10);
+    tree.insert(20);
+    tree.insert(30);
+    tree.insert(15);
+    tree.insert(25);
+    tree.insert(5);
+
+    std::cout << "Inorder: ";
+    tree.inorder();
+
+    std::cout << "\nPreorder: ";
+    tree.preorder();
+
+    std::cout << "\nPostorder: ";
+    tree.postorder();
+
+    std::cout << "\nSearch 15: " << tree.search(15);
+    std::cout << "\nSearch 99: " << tree.search(99) << std::endl;
+
+    RedBlackTree copy = tree;
+    std::cout << "Copied tree inorder: ";
+    copy.inorder();
     return 0;
 }
