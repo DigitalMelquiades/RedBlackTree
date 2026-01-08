@@ -16,6 +16,7 @@ private:
 public:
     // Constructor
     Node() : value(0), isBlack(false), isLeftChild(false), left(nullptr), right(nullptr), parent(nullptr) {}
+    Node(const int& value) : value(value), isBlack(false), isLeftChild(false), left(nullptr), right(nullptr), parent(nullptr) {}
     void makeBlack() { isBlack = true; }
 };
 #endif //REDBLACKTREE_NODE_H
