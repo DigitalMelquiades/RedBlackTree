@@ -12,8 +12,8 @@ class RedBlackTree {
     void preorder(Node* node) const;
     void postorder(Node* node) const;
     bool search(const Node* node, const int& key) const;
-    bool isRed(const Node* node);
-    bool isBlack(const Node* node);
+    bool isRed(const Node* node) const;
+    bool isBlack(const Node* node) const;
     void fixInsert(Node* node);
     void fixDelete(Node* x, Node* parent);
     void deleteNode(Node* node);
@@ -21,6 +21,7 @@ class RedBlackTree {
     Node* copy(Node* node, Node* parent);
     void clear(Node* node);
     Node* minimum(Node* node);
+    Node* insertRec(Node* node, Node* parent, const int& value, Node*& insertedNode);
 public:
     RedBlackTree();
     RedBlackTree(const RedBlackTree& other);
@@ -29,6 +30,7 @@ public:
     void rightRotate(Node* node);
     void transplant(Node* node, Node* v);
     void insert(const int& value);
+    void insertRec(const int& value);
     void deleteNode(const int& value);
     bool search(const int& key) const;
     bool searchIt(const int& key);

@@ -33,5 +33,18 @@ int main() {
     RedBlackTree copy = tree;
     std::cout << "\nCopied tree inorder: ";
     copy.inorder();
+
+    std::cout << "\nDeleting root\n";
+    tree.deleteNode(10);
+    tree.inorder();
+
+    std::cout << "\nDeleting 20\n";
+    tree.deleteNode(20);
+    tree.inorder();
+
+    std::cout << "\nStress insert:";
+    for (int i = 1; i <= 20; ++i) i > 10 ? tree.insert(i):tree.insertRec(i); // Testing both insert
+    tree.inorder();
+
     return 0;
 }
