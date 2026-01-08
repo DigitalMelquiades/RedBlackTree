@@ -1,3 +1,5 @@
+// When I wrote this code, only the God and I knew what was written here, I am the best programmer on the planet, that's why the God chose me
+// Now only the God knows...
 #include <iostream>
 #include "Node.h"
 // not using namespace std;
@@ -28,38 +30,39 @@ class RedBlackTree {
         return search(node->right, key);
     }
     bool isRed(const Node* node) { return node && !node->isBlack; } // Implemented this helper function (n+1 helper function) because repeating code is bad practice as Mrs. Magda said
+    bool isBlack(const Node* node) { return node && node->isBlack; }
     void fixInsert(Node* node) {
         while (node != root && isRed(node->parent)) {
             Node* parent = node->parent;
             Node* grandparent = parent->parent;
-
             if (parent == grandparent->left) {
                 Node* uncle = grandparent->right;
                 if (isRed(uncle)) {
-                    parent->isBlack = true;
-                    uncle->isBlack = true;
-                    grandparent->isBlack = false;
+                    colorflip(grandparent);
                     node = grandparent;
-                } else {
+                }
+                else {
                     if (node == parent->right) {
                         node = parent;
                         leftRotate(node);
+                        parent = node->parent;
                     }
                     parent->isBlack = true;
                     grandparent->isBlack = false;
                     rightRotate(grandparent);
                 }
-            } else {
+            }
+            else {
                 Node* uncle = grandparent->left;
                 if (isRed(uncle)) {
-                    parent->isBlack = true;
-                    uncle->isBlack = true;
-                    grandparent->isBlack = false;
+                    colorflip(grandparent);
                     node = grandparent;
-                } else {
+                }
+                else {
                     if (node == parent->left) {
                         node = parent;
                         rightRotate(node);
+                        parent = node->parent;
                     }
                     parent->isBlack = true;
                     grandparent->isBlack = false;
@@ -67,7 +70,67 @@ class RedBlackTree {
                 }
             }
         }
+
         root->isBlack = true;
+    }
+    void fixDelete(Node* node, Node* parent) {
+        while (node != root && isBlack(node)) {
+            if (node == parent->left) {
+                Node* sibling = parent->right;
+                if (!isBlack(sibling)) {
+                    sibling->isBlack = true;
+                    parent->isBlack = false;
+                    leftRotate(parent);
+                    sibling = parent->right;
+                }
+                if (isBlack(sibling->left) && isBlack(sibling->right)) {
+                    sibling->isBlack = false;
+                    node = parent;
+                    parent = node->parent;
+                }
+                else {
+                    if (isBlack(sibling->right)) {
+                        if (sibling->left) sibling->left->isBlack = true;
+                        sibling->isBlack = false;
+                        rightRotate(sibling);
+                        sibling = parent->right;
+                    }
+                    sibling->isBlack = parent->isBlack;
+                    parent->isBlack = true;
+                    if (sibling->right) sibling->right->isBlack = true;
+                    leftRotate(parent);
+                    node = root;
+                }
+            }
+            else {
+                Node* s = parent->left;
+                if (!isBlack(s)) {
+                    s->isBlack = true;
+                    parent->isBlack = false;
+                    rightRotate(parent);
+                    s = parent->left;
+                }
+                if (isBlack(s->left) && isBlack(s->right)) {
+                    s->isBlack = false;
+                    node = parent;
+                    parent = node->parent;
+                }
+                else {
+                    if (isBlack(s->left)) {
+                        if (s->right) s->right->isBlack = true;
+                        s->isBlack = false;
+                        leftRotate(s);
+                        s = parent->left;
+                    }
+                    s->isBlack = parent->isBlack;
+                    parent->isBlack = true;
+                    if (s->left) s->left->isBlack = true;
+                    rightRotate(parent);
+                    node = root;
+                }
+            }
+        }
+        if (node) node->isBlack = true;
     }
     Node* copy(Node* node, Node* parent) {
         if (!node) return nullptr;
@@ -167,37 +230,40 @@ public:
         }
         return false;
     }
-    void deleteIterative(const int& key) {
+    void deleteIt(const int& key) {
         Node* parent = nullptr;
-        Node* curr = root;
-        while (curr && curr->value != key) {
-            parent = curr;
-            curr = (key < curr->value) ? curr->left : curr->right;
+        Node* current = root;
+        while (current && current->value != key) {
+            parent = current;
+            current = (key < current->value) ? current->left : current->right;
         }
-        if (!curr) return;
-        if (curr->left && curr->right) {
-            Node* succParent = curr;
-            Node* succ = curr->right;
-            while (succ->left) {
-                succParent = succ;
-                succ = succ->left;
+        if (!current) return;
+        bool deletedBlack = current->isBlack;
+        if (current->left && current->right) {
+            Node* succsessorParent = current;
+            Node* succsessor = current->right;
+            while (succsessor->left) {
+                succsessorParent = succsessor;
+                succsessor = succsessor->left;
             }
-            curr->value = succ->value;
-            curr = succ;
-            parent = succParent;
+            current->value = succsessor->value;
+            current = succsessor;
+            parent = succsessorParent;
+            deletedBlack = current->isBlack;
         }
-        Node* child = curr->left ? curr->left : curr->right;
-
+        Node* child = current->left ? current->left : current->right;
+        if (child) child->parent = parent;
         if (!parent) root = child;
-        else if (parent->left == curr) parent->left = child;
+        else if (parent->left == current) parent->left = child;
         else parent->right = child;
-        delete curr;
+        delete current;
+        if (deletedBlack) fixDelete(child, parent);
     }
-    void deleteRecursive(int key) { root = deleteRec(root, key); } // Deletion may cause tree to break, but because I don't want to copy-paste code from GPT and we never really wrote proper code for it on the lab, I decided not to touch it, at least it satisfies the task requirements anyway
-    void colorflip(Node* n) {
-        n->isBlack = !n->isBlack;
-        n->left->isBlack = !n->left->isBlack;
-        n->right->isBlack = !n->right->isBlack;
+    void deleteRec(const int& key) { root = deleteRec(root, key); } // Deletion may cause tree to break, but because I don't want to copy-paste code from GPT and we never really wrote proper code for it on the lab, I decided not to touch it, at least it satisfies the task requirements anyway
+    void colorflip(Node* grandparent) {
+        grandparent->isBlack = false;
+        if (grandparent->left) grandparent->left->isBlack = true;
+        if (grandparent->right) grandparent->right->isBlack = true;
     }
     void inorder() const { inorder(root); } // I will implement my own display order approach, because why not
     void preorder() const { preorder(root); }
@@ -226,17 +292,22 @@ int main() {
     std::cout << "Inorder: ";
     tree.inorder();
 
+    tree.deleteIt(5);
+
     std::cout << "\nPreorder: ";
     tree.preorder();
+
+    //tree.deleteRec(25);
+    tree.deleteIt(25);
 
     std::cout << "\nPostorder: ";
     tree.postorder();
 
-    std::cout << "\nSearch 15: " << tree.search(15);
-    std::cout << "\nSearch 99: " << tree.search(99) << std::endl;
+    std::cout << "\nSearch 15: " << (tree.search(15) ? "Found":"Not Found");
+    std::cout << "\nSearch 99: " << (tree.search(99) ? "Found":"Not Found");
 
     RedBlackTree copy = tree;
-    std::cout << "Copied tree inorder: ";
+    std::cout << "\nCopied tree inorder: ";
     copy.inorder();
     return 0;
 }
